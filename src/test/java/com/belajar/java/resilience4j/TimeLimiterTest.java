@@ -1,10 +1,12 @@
 package com.belajar.java.resilience4j;
 
 import io.github.resilience4j.timelimiter.TimeLimiter;
+import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +28,22 @@ public class TimeLimiterTest {
         Future<String> future = executorService.submit(this::slow);
 
         TimeLimiter limiter = TimeLimiter.ofDefaults("ak47");
+        Callable<String> callable = TimeLimiter.decorateFutureSupplier(limiter, () -> future);
+
+        callable.call();
+    }
+
+    @Test
+    void testTimeLimiterConfig() throws Exception {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        Future<String> future = executorService.submit(this::slow);
+
+        TimeLimiterConfig config = TimeLimiterConfig.custom()
+                .timeoutDuration(Duration.ofSeconds(20))
+                .cancelRunningFuture(true)
+                .build();
+
+        TimeLimiter limiter = TimeLimiter.of("ak47", config);
         Callable<String> callable = TimeLimiter.decorateFutureSupplier(limiter, () -> future);
 
         callable.call();
