@@ -1,6 +1,7 @@
 package com.belajar.java.resilience4j;
 
 import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -27,5 +28,15 @@ public class EventPublisherTest {
             System.out.println(retry.getMetrics().getNumberOfSuccessfulCallsWithRetryAttempt());
             System.out.println(retry.getMetrics().getNumberOfSuccessfulCallsWithoutRetryAttempt());
         }
+    }
+
+    @Test
+    void testRetryRegistry() {
+        RetryRegistry registry = RetryRegistry.ofDefaults();
+        registry.getEventPublisher()
+                .onEntryAdded(event -> log.info("New Retry Added {}", event.getAddedEntry().getName()));
+
+        registry.retry("ak47");
+        registry.retry("config");
     }
 }
