@@ -1,9 +1,6 @@
 package com.belajar.java.resilience4j;
 
-import io.github.resilience4j.bulkhead.Bulkhead;
-import io.github.resilience4j.bulkhead.BulkheadConfig;
-import io.github.resilience4j.bulkhead.ThreadPoolBulkhead;
-import io.github.resilience4j.bulkhead.ThreadPoolBulkheadConfig;
+import io.github.resilience4j.bulkhead.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -60,7 +57,6 @@ public class BulkheadTest {
             Runnable runnable = Bulkhead.decorateRunnable(bulkhead, this::slow);
             new Thread(runnable).start();
         }
-
         Thread.sleep(10_000L);
     }
 
@@ -79,7 +75,42 @@ public class BulkheadTest {
                     ThreadPoolBulkhead.decorateRunnable(bulkhead, this::slow);
             runnable.get();
         }
+        Thread.sleep(10_000L);
+    }
 
+    @Test
+    void testSemaphoreRegistry() throws InterruptedException {
+        BulkheadConfig config = BulkheadConfig.custom()
+                .maxWaitDuration(Duration.ofSeconds(5))
+                .maxConcurrentCalls(5)
+                .build();
+        BulkheadRegistry registry = BulkheadRegistry.ofDefaults();
+        registry.addConfiguration("config", config);
+        Bulkhead bulkhead = registry.bulkhead("ak47", "config");
+
+        for (int i = 0; i < 10; i++) {
+            Runnable runnable = Bulkhead.decorateRunnable(bulkhead, this::slow);
+            new Thread(runnable).start();
+        }
+        Thread.sleep(10_000L);
+    }
+
+    @Test
+    void testThreadPoolRegistry() throws InterruptedException {
+        ThreadPoolBulkheadConfig config = ThreadPoolBulkheadConfig.custom()
+                .maxThreadPoolSize(5)
+                .coreThreadPoolSize(5)
+                .queueCapacity(1)
+                .build();
+        ThreadPoolBulkheadRegistry registry = ThreadPoolBulkheadRegistry.ofDefaults();
+        registry.addConfiguration("config", config);
+        ThreadPoolBulkhead bulkhead = registry.bulkhead("ak47", "config");
+
+        for (int i = 0; i < 20; i++) {
+            Supplier<CompletionStage<Void>> runnable =
+                    ThreadPoolBulkhead.decorateRunnable(bulkhead, this::slow);
+            runnable.get();
+        }
         Thread.sleep(10_000L);
     }
 }
